@@ -45,8 +45,5 @@
       "source": "/sitemap.xml",
       "destination": "/api/sitemap"
     }
-  ],
-  "env": {
-    "NEXT_PUBLIC_BASE_URL": "@next_public_base_url"
-  }
+  ]
 }
