@@ -8,39 +8,53 @@ async function setupDatabase() {
   try {
     console.log('🚀 Setting up School Directory Database...\n');
 
-    const dbName = process.env.DB_NAME || 'school_directory';
-
-    // Database configuration
-    const config = {
-      host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      multipleStatements: false
-    };
-
-    console.log(`📡 Connecting to MySQL server at ${config.host}...`);
+    let connection;
     
-    // Connect to MySQL server (without database)
-    let connection = await mysql.createConnection(config);
-    
-    console.log('✅ Connected to MySQL server');
+    if (process.env.DATABASE_URL) {
+      // Use Service URI
+      console.log('📡 Connecting using Service URI...');
+      connection = await mysql.createConnection(process.env.DATABASE_URL);
+      console.log('✅ Connected to database via Service URI');
+      
+      // Skip database creation since it already exists
+      console.log('📋 Database already exists (using Service URI)');
+    } else {
+      // Use individual credentials (legacy method)
+      const dbName = process.env.DB_NAME || 'school_directory';
 
-    // Create database
-    console.log('📋 Creating database...');
-    await connection.execute(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
-    console.log('✅ Database created successfully');
+      // Database configuration
+      const config = {
+        host: process.env.DB_HOST || 'localhost',
+        port: process.env.DB_PORT || 3306,
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        multipleStatements: false
+      };
 
-    // Close the first connection
-    await connection.end();
+      console.log(`📡 Connecting to MySQL server at ${config.host}...`);
+      
+      // Connect to MySQL server (without database)
+      let tempConnection = await mysql.createConnection(config);
+      
+      console.log('✅ Connected to MySQL server');
 
-    // Create new connection with the database
-    const configWithDB = {
-      ...config,
-      database: dbName
-    };
+      // Create database
+      console.log('📋 Creating database...');
+      await tempConnection.execute(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+      console.log('✅ Database created successfully');
 
-    connection = await mysql.createConnection(configWithDB);
-    console.log(`✅ Connected to database: ${dbName}`);
+      // Close the first connection
+      await tempConnection.end();
+
+      // Create new connection with the database
+      const configWithDB = {
+        ...config,
+        database: dbName
+      };
+
+      connection = await mysql.createConnection(configWithDB);
+      console.log(`✅ Connected to database: ${dbName}`);
+    }
 
     // Create schools table
     console.log('📋 Creating schools table...');
